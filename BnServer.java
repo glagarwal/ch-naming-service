@@ -21,22 +21,10 @@ public class BnServer implements Runnable {
     /**
      * This will add the server to the correct position
      * and will assign the key range.
-     * This will also enlighten the preceeding and 
-     * the succeding servers of the new server.
      * 
      * @author Gaurav Agarwal
-     * @param
+     * @param s The socket connection to the Name Server
      */
-    // public int contactServer(String nsAddr, int nsPort) {
-    //     Socket ns = new Socket(nsAddr, nsPort);
-    //     DataInputStream in = new DataInputStream(ns.getInputStream());
-    //     DataOutputStream out = new DataOutputStream(ns.getOutputStream());
-
-    //     out.writeUTF("Return ID");
-    //     int id = in.readInt();
-    //     return id;
-    // }
-
     public void addServer(Socket s) {
         try {
             String nsAddr = s.getInetAddress().getHostAddress();
@@ -68,7 +56,7 @@ public class BnServer implements Runnable {
                     break;
                 }
                 this.send.writeUTF(key + ":" + p.getValue());
-                System.out.println("Sending (" + key + " : " + p.getValue()+")");
+                System.out.println("Sending (" + key + " : " + p.getValue() + ")");
                 removeKeys.add(key);
             }
             System.out.println();
@@ -82,13 +70,20 @@ public class BnServer implements Runnable {
         }
     }
 
+    /**
+     * It reassigns it's own predecessor and
+     * takes all the key-value pairs of the exiting server.
+     * 
+     * @author Gaurav Agarwal
+     * @param s The Socket connection to the exiting name server.
+     */
     public void deleteServer(Socket s) {
         try {
-            System.out.print("Predecessor "+pre_nsID+" exited. ");
+            System.out.print("Predecessor " + pre_nsID + " exited. ");
             pre_nsAddr = this.receive.readUTF();
             pre_nsID = this.receive.readInt();
             pre_nsPort = this.receive.readInt();
-            System.out.println("New predecessor "+pre_nsID);
+            System.out.println("New predecessor " + pre_nsID);
             int key;
             while (true) {
                 String repMsg = this.receive.readUTF();
@@ -97,7 +92,7 @@ public class BnServer implements Runnable {
                 }
                 key = Integer.parseInt(repMsg.split(":")[0]);
                 pairsMap.put(key, repMsg.split(":")[1]);
-                System.out.println("Receiving: ("+repMsg+")");
+                System.out.println("Receiving: (" + repMsg + ")");
             }
             System.out.println();
         } catch (Exception e) {
@@ -106,6 +101,13 @@ public class BnServer implements Runnable {
         }
     }
 
+    /**
+     * A thread run method which will always wait 
+     * to accept incoming connections. On connection,
+     * it performs the requested task.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void run() {
         try {
             bn = new ServerSocket(portNumber);
@@ -136,11 +138,11 @@ public class BnServer implements Runnable {
                     repMsg = this.receive.readUTF();
                     // successor is exiting
                     if (repMsg.equalsIgnoreCase("succ")) {
-                        System.out.print("Successor "+succ_nsID+" exited. ");
+                        System.out.print("Successor " + succ_nsID + " exited. ");
                         succ_nsAddr = this.receive.readUTF();
                         succ_nsID = this.receive.readInt();
                         succ_nsPort = this.receive.readInt();
-                        System.out.println("New Successor "+succ_nsID);
+                        System.out.println("New Successor " + succ_nsID);
                     }
                     // predecesor is exiting
                     else if (repMsg.equalsIgnoreCase("pre")) {
@@ -157,14 +159,17 @@ public class BnServer implements Runnable {
     }
 
     /**
-     * This contacts all the name serevers to check
-     * whether they have the key-value pair
-     * until the name server having the key is found.
+     * This contacts the name serevers to check
+     * whether they have the key-value pair.
+     * This stops when all the servers till the server 
+     * having the search key's range are evaluated.
+     * Alongside lookup if there is a delete key request,
+     * it performs that too.
      *
      * @author Gaurav Agaarwal
      * @param key The key whose value is to be found
-     * @param task the task to perform such as just lookup or lookup and delete is specified here.
-     * @return This returns a string containing the value of that key.
+     * @param task the task to perform such as just lookup or delete key is specified here.
+     * @return This returns a string containing the value of that key or else "Key not found".
      */
     public String lookUp(int key, String task) {
         String val = "Key not found";
@@ -173,7 +178,7 @@ public class BnServer implements Runnable {
             int nsID = succ_nsID;
             int nsPort = succ_nsPort;
             System.out.println("Searching at Server " + serverId);
-            if (key > pairsMap.firstKey()) {
+            if (key > pre_nsID) {
                 if (pairsMap.containsKey(key)) {
                     System.out.println("Key found at Bootstrap server!");
                     val = pairsMap.get(key);
@@ -184,6 +189,7 @@ public class BnServer implements Runnable {
                 }
             } else {
                 while (nsID != serverId) {
+                    int flag = 0;
                     System.out.println("Contacting Server " + nsID);
                     Socket s = new Socket(nsAddr, nsPort);
                     this.receive = new DataInputStream(s.getInputStream());
@@ -193,6 +199,9 @@ public class BnServer implements Runnable {
                     send.writeInt(key);
                     rep = receive.readUTF();
                     if (rep.equalsIgnoreCase("go ahead")) {
+                        if (key < nsID) { //it should have been here, don't check further
+                            flag = 1;
+                        }
                         nsAddr = this.receive.readUTF();
                         nsID = this.receive.readInt();
                         nsPort = this.receive.readInt();
@@ -208,6 +217,8 @@ public class BnServer implements Runnable {
                         break;
                     }
                     s.close();
+                    if (flag == 1)
+                        break;
                 }
             }
         } catch (Exception e) {
@@ -224,7 +235,6 @@ public class BnServer implements Runnable {
      * @author Gaurav Agaarwal
      * @param key
      * @param value 
-     * @return This returns the server ID where the key is found.
      */
     public void insert(int key, String value) {
         try {
@@ -232,7 +242,7 @@ public class BnServer implements Runnable {
             int nsID = succ_nsID;
             int nsPort = succ_nsPort;
             System.out.println("Starting at Server " + serverId);
-            if (key > pairsMap.firstKey()) {
+            if (key > pre_nsID) {
                 pairsMap.put(key, value);
                 System.out.print("Inserted at Server " + serverId);
             } else {
@@ -264,13 +274,12 @@ public class BnServer implements Runnable {
     }
 
     /**
-     * main method where the HashMap is filled with initial values
+     * main method where the TreeMap is filled with initial values
      * And it takes the user input commands.
      * 
      * @author Gaurav Agarwal
      */
     public static void main(String[] args) {
-
         try {
             File file = new File(args[0]);
             Scanner sc = new Scanner(file);
@@ -282,10 +291,10 @@ public class BnServer implements Runnable {
                 key = Integer.parseInt(parts[0]);
                 pairsMap.put(key, parts[1]);
             }
-            // if(DEBUG){   //just printing the hashmap
-            //     System.out.println(Arrays.asList(pairsMap));
-            //     System.out.println("\nLength: "+pairsMap.size());
-            // }
+            if (DEBUG) { //just printing the Treemap key-value pairs
+                System.out.println(Arrays.asList(pairsMap));
+                System.out.println("\nLength: " + pairsMap.size());
+            }
             BnServer b = new BnServer();
             Thread t = new Thread(new BnServer());
             t.start();

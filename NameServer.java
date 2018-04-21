@@ -17,6 +17,13 @@ class NameServer implements Runnable {
     public static int pre_nsID, succ_nsID;
     public static int pre_nsPort, succ_nsPort, bsPort;
 
+    /**
+     * This will add the server to the correct position
+     * and will assign the key range.
+     * 
+     * @author Gaurav Agarwal
+     * @param s The socket connection to the Name Server
+     */
     public void addServer(Socket s) {
         try {
             this.receive = new DataInputStream(s.getInputStream());
@@ -47,7 +54,7 @@ class NameServer implements Runnable {
                     break;
                 }
                 this.send.writeUTF(key + ":" + p.getValue());
-                System.out.println("Sending (" + key + " : " + p.getValue()+")");
+                System.out.println("Sending (" + key + " : " + p.getValue() + ")");
                 removeKeys.add(key);
             }
             System.out.println();
@@ -61,13 +68,20 @@ class NameServer implements Runnable {
         }
     }
 
+    /**
+     * It reassigns it's own predecessor and
+     * takes all the key-value pairs of the exiting server.
+     * 
+     * @author Gaurav Agarwal
+     * @param s The Socket connection to the exiting name server.
+     */
     public void deleteServer(Socket s) {
         try {
-            System.out.print("Predecessor "+pre_nsID+" exited. ");
+            System.out.print("Predecessor " + pre_nsID + " exited. ");
             pre_nsAddr = this.receive.readUTF();
             pre_nsID = this.receive.readInt();
             pre_nsPort = this.receive.readInt();
-            System.out.println("New predecessor "+pre_nsID);
+            System.out.println("New predecessor " + pre_nsID);
             int key;
             while (true) {
                 String repMsg = this.receive.readUTF();
@@ -76,7 +90,7 @@ class NameServer implements Runnable {
                 }
                 key = Integer.parseInt(repMsg.split(":")[0]);
                 pairsMap.put(key, repMsg.split(":")[1]);
-                System.out.println("Receiving: ("+repMsg+")");
+                System.out.println("Receiving: (" + repMsg + ")");
             }
             System.out.println();
         } catch (Exception e) {
@@ -85,18 +99,17 @@ class NameServer implements Runnable {
         }
     }
 
+    /**
+     * A thread run method which will always wait 
+     * to accept incoming connections. On connection,
+     * it performs the requested task.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void run() {
         try {
             ns = new ServerSocket(portNumber);
             Socket s;
-
-            // pre_nsAddr = succ_nsAddr = s.getLocalAddress();
-            // pre_nsID = succ_nsID = serverId;
-            // pre_nsPort = succ_nsPort = portNumber;
-
-            // addServer(s);
-            // s.close();
-
             String repMsg = "";
             while (true) {
                 s = ns.accept();
@@ -114,11 +127,11 @@ class NameServer implements Runnable {
                     repMsg = receive.readUTF();
                     // successor is exiting
                     if (repMsg.equalsIgnoreCase("succ")) {
-                        System.out.print("Successor "+succ_nsID+" exited. ");
+                        System.out.print("Successor " + succ_nsID + " exited. ");
                         succ_nsAddr = this.receive.readUTF();
                         succ_nsID = this.receive.readInt();
                         succ_nsPort = this.receive.readInt();
-                        System.out.println("New Successor "+succ_nsID);
+                        System.out.println("New Successor " + succ_nsID);
                     }
                     // predecesor is exiting
                     else if (repMsg.equalsIgnoreCase("pre")) {
@@ -159,14 +172,37 @@ class NameServer implements Runnable {
         }
     }
 
+    /**
+     * This just prints out the ID of the successor name server.
+     * Call this in a loop while traversing the name servers 
+     * to show the servers being contacted.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void displayTraversal() {
         System.out.println("contacted server: " + succ_nsID);
     }
 
+    /**
+     * This prints out the first key and the last key available
+     * to this name server at the moment.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void displayRange() {
+        // to show the possible range replace with (pre_nsID+1) and (serverId)
         System.out.println("Key range: " + pairsMap.firstKey() + " to " + pairsMap.lastKey());
     }
 
+    /**
+     * Contacts the name servers starting at Bootstrap server
+     * to find the correct position of entry.
+     * Then contacts and informs the predecessor about itself.
+     * Also takes the key-value pairs belonging to it's range from the
+     * successor name server.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void entry() {
         Socket c;
         try {
@@ -232,6 +268,13 @@ class NameServer implements Runnable {
         }
     }
 
+    /**
+     * It contacts the predecessor server and updates about the deletion.
+     * Then contacts the successor server, updates about the deletion and
+     * sends it's key-value pairs to the successor.
+     * 
+     * @author Gaurav Agarwal
+     */
     public void exit() {
         try {
             //informing the predecessor
@@ -268,6 +311,12 @@ class NameServer implements Runnable {
         }
     }
 
+    /**
+     * main method where it takes the user input commands to
+     * "enter" or "exit" the naming system.
+     * 
+     * @author Gaurav Agarwal
+     */
     public static void main(String[] args) {
         try {
             File file = new File(args[0]);
