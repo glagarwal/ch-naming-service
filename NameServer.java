@@ -3,18 +3,63 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 
-class NameServer implements Runnable {
+/**
+ * <h1>Name Server</h1>
+ * <p>Keeps track of it's predecessor and successor.</p>
+ * <p>Allows you to enter or exit the consistent hashing naming system.</p>
+ * <p>Starts entry process from the BootStrap server and then goes along the cycle
+ * to other name servers.</p>
+ * <br>
+ * Note: The main method thread connects to other servers,
+ * whereas another thread t waits to accept connections from other servers.
+ * 
+ * @author Gaurav Agarwal
+ * @since 2018-04-20
+ */
+public class NameServer implements Runnable {
+    /**
+     * Set it true to enable Debug outputs
+     */
     public static final Boolean DEBUG = false;
+    /**
+     * Set it true to enable Exception outputs
+     */
     public static final Boolean ShowException = false;
+    /**
+     * This holds the key-value pairs for the current server
+     */
     public static TreeMap<Integer, String> pairsMap = new TreeMap<Integer, String>();
+    /**
+     * This server's ID
+     */
     public static int serverId;
+    /**
+     * This server's port number
+     */
     public static int portNumber;
+    /**
+     * reads the messages sent from another server.
+     */
     public DataInputStream receive;
+    /**
+     * sends messages to other server.
+     */
     public DataOutputStream send;
+    /**
+     * accepts connections.
+     */
     public ServerSocket ns;
-
+    /**
+     * IP address. pre=predecessor, succ=successor, bs=bootstrap
+     */
     public static String pre_nsAddr, succ_nsAddr, bsAddr;
+    /**
+     * Server ID. pre=predecessor, succ=successor.
+     */
     public static int pre_nsID, succ_nsID;
+    /**
+     * Port number. pre=predecessor, succ=successor, bs=bootstrap
+     */
     public static int pre_nsPort, succ_nsPort, bsPort;
 
     /**
@@ -316,6 +361,7 @@ class NameServer implements Runnable {
      * "enter" or "exit" the naming system.
      * 
      * @author Gaurav Agarwal
+     * @param args[] takes in the local filename which has the name server details.
      */
     public static void main(String[] args) {
         try {

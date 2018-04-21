@@ -3,19 +3,62 @@ import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 
+/**
+ * <h1>Bootstrap Server</h1>
+ * <p>This acts as the first point of contact for other name servers.</p>
+ * <p>Itself also has the functionality of nameserver.</p>
+ * <p>Allows you to lookup, insert and delete keys.</p>
+ * <br>
+ * Note: The main method thread connects to other servers,
+ * whereas another thread t waits to accept connections from other servers.
+ * 
+ * @author Gaurav Agarwal
+ * @since 2018-04-20
+ */
 public class BnServer implements Runnable {
+    /**
+     * Set it true to enable Debug outputs
+     */
     public static final Boolean DEBUG = false;
+    /**
+     * Set it true to enable Exception outputs
+     */
     public static final Boolean ShowException = false;
+    /**
+     * This holds the key-value pairs for the current server
+     */
     public static TreeMap<Integer, String> pairsMap = new TreeMap<Integer, String>();
-    // public static Map<Integer, String> nameServers = new TreeMap<Integer, String>();
+    /**
+     * This server's ID
+     */
     public static int serverId;
+    /**
+     * This server's port number
+     */
     public static int portNumber;
+    /**
+     * reads the messages sent from another server.
+     */
     public DataInputStream receive;
+    /**
+     * sends messages to other server.
+     */
     public DataOutputStream send;
+    /**
+     * accepts connections.
+     */
     public ServerSocket bn;
-
+    /**
+     * IP address. pre=predecessor, succ=successor.
+     */
     public static String pre_nsAddr, succ_nsAddr;
+    /**
+     * Server ID. pre=predecessor, succ=successor.
+     */
     public static int pre_nsID, succ_nsID;
+    /**
+     * Port Number. pre=predecessor, succ=successor.
+     */
     public static int pre_nsPort, succ_nsPort;
 
     /**
@@ -278,6 +321,8 @@ public class BnServer implements Runnable {
      * And it takes the user input commands.
      * 
      * @author Gaurav Agarwal
+     * @param args[] takes in the local filename which has 
+     * the Bootstrap server details and initial key-value pairs.
      */
     public static void main(String[] args) {
         try {
